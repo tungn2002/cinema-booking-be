@@ -43,6 +43,13 @@
 			<version>1.12.641</version>
 		</dependency>
 
+		<!-- Cloudinary for image management -->
+		<dependency>
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-http44</artifactId>
+			<version>1.39.0</version>
+		</dependency>
+
 		<!-- iText for PDF generation -->
 		<dependency>
 			<groupId>com.itextpdf</groupId>
