@@ -67,9 +67,8 @@ public class ReviewService {
             review.setRating(reviewRequest.getRating());
 
             // Set review status based on moderation settings
-            // For now, we'll approve all reviews automatically
-            // TODO: implement proper moderation workflow later
-            review.setStatus(ReviewStatus.APPROVED); // auto-approve for now
+            // New reviews require admin approval before being visible to other users
+            review.setStatus(ReviewStatus.PENDING); // require moderation
 
             // Set helpful tags if provided
             if (reviewRequest.getHelpfulTags() != null && !reviewRequest.getHelpfulTags().isEmpty()) {
