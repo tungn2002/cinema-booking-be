@@ -425,4 +425,55 @@ public class ReservationService {
 
         return dto;
     }
+
+    /**
+     * Auto-cancel expired confirmed reservations that haven't been paid.
+     * Called by scheduler every 10 minutes.
+     *
+     * @param cutoffTime reservations before this time will be canceled
+     * @return number of canceled reservations
+     */
+    @Transactional
+    public int cancelExpiredReservations(LocalDateTime cutoffTime) {
+        log.info("Auto-canceling expired confirmed reservations before {}", cutoffTime);
+
+        List<Reservation> expiredReservations = reservationRepository.findExpiredConfirmedReservations(cutoffTime);
+
+        if (expiredReservations.isEmpty()) {
+            log.info("No expired reservations found");
+            return 0;
+        }
+
+        log.info("Found {} expired reservations to cancel", expiredReservations.size());
+
+        int canceledCount = 0;
+        for (Reservation reservation : expiredReservations) {
+            try {
+                // Free up seats
+                List<Seat> seats = reservation.getSeats();
+                seats.forEach(seat -> {
+                    seat.setIsReserved(false);
+                    seat.setReservation(null);
+                });
+                seatRepository.saveAll(seats);
+
+                // Update available seats count in showtime
+                Showtime showtime = reservation.getShowtime();
+                showtime.setAvailableSeats(showtime.getAvailableSeats() + seats.size());
+                showtimeRepository.save(showtime);
+
+                // Update reservation status to CANCELED
+                reservation.setStatusId(3); // 3 = CANCELED
+                reservationRepository.save(reservation);
+
+                canceledCount++;
+                log.info("Auto-canceled reservation #{} for user {}", reservation.getId(), reservation.getUser().getUserName());
+            } catch (Exception e) {
+                log.error("Error auto-canceling reservation #{}: {}", reservation.getId(), e.getMessage());
+            }
+        }
+
+        log.info("Auto-cancel completed. Canceled {} reservations", canceledCount);
+        return canceledCount;
+    }
 }

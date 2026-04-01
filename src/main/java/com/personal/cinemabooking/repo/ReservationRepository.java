@@ -89,4 +89,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long>,
     // the kitchen sink - all filters together
     // this one's a mouthful lol
     Page<Reservation> findByPaidAndStatusIdAndReservationTimeBetween(boolean paid, Integer statusId, LocalDateTime startDateTime, LocalDateTime endDateTime, Pageable pageable);
+
+    /**
+     * Find confirmed reservations (statusId = 1) that are older than the specified cutoff time.
+     * Used for auto-canceling unpaid reservations that have expired.
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.statusId = 1 AND r.paid = false AND r.reservationTime < :cutoffTime")
+    List<Reservation> findExpiredConfirmedReservations(LocalDateTime cutoffTime);
 }
