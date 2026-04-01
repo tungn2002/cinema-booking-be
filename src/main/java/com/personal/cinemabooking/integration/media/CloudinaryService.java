@@ -74,33 +74,43 @@ public class CloudinaryService {
     public List<Map<String, Object>> listImages() throws Exception {
         log.info("Listing images from Cloudinary folder: {}", folder);
 
-        Map<String, Object> params = ObjectUtils.asMap(
-                "prefix", folder + "/",
-                "resource_type", "image",
-                "max_results", 500
-        );
+        try {
+            Map<String, Object> params = ObjectUtils.asMap(
+                    "type", "upload",
+                    "prefix", folder + "/",
+                    "max_results", 500
+            );
 
-        Map<String, Object> resources = cloudinary.api().resources(params);
-        List<Map<String, Object>> images = new ArrayList<>();
+            Map<String, Object> resources = cloudinary.api().resources(params);
+            List<Map<String, Object>> images = new ArrayList<>();
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> resourcesList = (List<Map<String, Object>>) resources.get("resources");
-
-        if (resourcesList != null) {
-            for (Map<String, Object> resource : resourcesList) {
-                Map<String, Object> imageInfo = new HashMap<>();
-                imageInfo.put("publicId", resource.get("public_id"));
-                imageInfo.put("url", resource.get("secure_url"));
-                imageInfo.put("format", resource.get("format"));
-                imageInfo.put("width", resource.get("width"));
-                imageInfo.put("height", resource.get("height"));
-                imageInfo.put("bytes", resource.get("bytes"));
-                imageInfo.put("createdAt", resource.get("created_at"));
-                images.add(imageInfo);
+            if (resources == null || !resources.containsKey("resources")) {
+                log.warn("No resources found in Cloudinary response");
+                return images;
             }
-        }
 
-        log.info("Found {} images in Cloudinary", images.size());
-        return images;
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> resourcesList = (List<Map<String, Object>>) resources.get("resources");
+
+            if (resourcesList != null) {
+                for (Map<String, Object> resource : resourcesList) {
+                    Map<String, Object> imageInfo = new HashMap<>();
+                    imageInfo.put("publicId", resource.get("public_id"));
+                    imageInfo.put("url", resource.get("secure_url"));
+                    imageInfo.put("format", resource.get("format"));
+                    imageInfo.put("width", resource.get("width"));
+                    imageInfo.put("height", resource.get("height"));
+                    imageInfo.put("bytes", resource.get("bytes"));
+                    imageInfo.put("createdAt", resource.get("created_at"));
+                    images.add(imageInfo);
+                }
+            }
+
+            log.info("Found {} images in Cloudinary", images.size());
+            return images;
+        } catch (Exception e) {
+            log.error("Cloudinary API error: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 }
