@@ -57,3 +57,7 @@ jobs:
        context: .
        push: true
        tags: ${{ secrets.DOCKERHUB_USERNAME }}/my-java-app:latest
+    - name: Deploy to Render
+      if: github.event_name != 'pull_request'
+      run: |
+        curl -fX POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
