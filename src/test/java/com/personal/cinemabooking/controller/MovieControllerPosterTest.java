@@ -38,10 +38,4 @@ public class MovieControllerPosterTest {
                 .thenReturn("Success message");
     }
 
-    // Placeholder test to avoid empty test class
-    @Test
-    void testPlaceholder() {
-        // This is a placeholder test that will always pass
-        // The actual tests have been removed because they depend on S3BucketService
-    }
 }

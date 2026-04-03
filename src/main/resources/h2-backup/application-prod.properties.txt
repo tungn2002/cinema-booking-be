@@ -1,13 +1,18 @@
+# Cloudinary config
+cloudinary.cloud-name=${CLOUDINARY_CLOUD_NAME}
+cloudinary.api-key=${CLOUDINARY_API_KEY}
+cloudinary.api-secret=${CLOUDINARY_API_SECRET}
+cloudinary.folder=${CLOUDINARY_FOLDER:cinema-booking}
+
 # Database Configuration
-# Using the correct JDBC URL format for Render.com PostgreSQL
-spring.datasource.url=${POSTGRES_URL}
-spring.datasource.username=${POSTGRES_USERNAME}
-spring.datasource.password=${POSTGRES_PASSWORD}
-spring.datasource.driver-class-name=org.postgresql.Driver
+spring.datasource.url=${DB_URL}
+spring.datasource.username=${DB_USERNAME}
+spring.datasource.password=${DB_PASSWORD}
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
 # JPA Configuration
 spring.jpa.hibernate.ddl-auto=update
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
 spring.jpa.show-sql=false
 
 # JWT Configuration
@@ -51,3 +56,18 @@ spring.web.cors.allowed-headers=Authorization,Content-Type,X-Requested-With,Acce
 spring.web.cors.exposed-headers=Authorization,Content-Type
 spring.web.cors.allow-credentials=true
 spring.web.cors.max-age=3600
+
+# Reservation auto-cancel scheduler
+# How long (in minutes) a confirmed reservation stays valid before auto-cancel
+reservation.expiration.minutes=15
+# How often (in milliseconds) the scheduler runs to check for expired reservations (default: 10 minutes)
+reservation.scheduler.fixed-rate=600000
+
+# rate limiting
+resilience4j.ratelimiter.instances.basic.limitForPeriod=100
+resilience4j.ratelimiter.instances.basic.limitRefreshPeriod=1m
+resilience4j.ratelimiter.instances.basic.timeoutDuration=1s
+
+# pdf
+pdf.receipt.directory=receipts
+app.name=CinemaBooking
