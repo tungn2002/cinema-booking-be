@@ -35,7 +35,7 @@ jobs:
         FROM eclipse-temurin:17-jdk-alpine
         WORKDIR /app
         COPY target/CinemaBookingApi-3.3.0.jar app.jar
-        COPY src/main/resources/application-prod.properties /app/application-prod.properties
+        COPY src/main/resources/h2-backup/application-prod.properties.txt /app/application-prod.properties
         EXPOSE 8080
         ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=prod", "--spring.config.location=file:/app/application-prod.properties"]
         EOF
@@ -56,5 +56,4 @@ jobs:
       with:
        context: .
        push: true
-       # Thay 'my-app-name' bằng tên project bạn muốn đặt trên Docker Hub
        tags: ${{ secrets.DOCKERHUB_USERNAME }}/my-java-app:latest
