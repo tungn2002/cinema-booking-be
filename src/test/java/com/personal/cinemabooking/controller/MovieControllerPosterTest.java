@@ -35,7 +35,7 @@ public class MovieControllerPosterTest {
         mockMvc = MockMvcBuilders.standaloneSetup(movieController).build();
 
         when(messageSource.getMessage(anyString(), any(), any(Locale.class)))
-                .thenReturn("Success message");
+                .thenReturn("Success messages");
     }
 
 }
