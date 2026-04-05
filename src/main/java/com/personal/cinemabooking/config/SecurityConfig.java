@@ -66,6 +66,9 @@ public class SecurityConfig {
 	@Autowired(required = false) // only in dev mode
 	private DevAuthenticationProvider devAuthenticationProvider; // dev backdoor
 
+    @Autowired
+    private OAuth2SuccessHandler oAuth2SuccessHandler;
+
 	// creates the main auth provider that checks username/password
 	@Bean
 	public AuthenticationProvider authProvider() {
@@ -121,12 +124,13 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				// public endpoints anyone can access
 				.requestMatchers("/api/v1/auth/**").permitAll() // login/register
-				.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll() // api docs
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll() // api docs
 				.requestMatchers("/error").permitAll() // error pages
 				.requestMatchers("/api/v1/movies/**").permitAll() // movie browsing
 				.requestMatchers("/api/v1/theaters/**").permitAll() // theater info
 				.requestMatchers("/api/v1/showtimes/**").permitAll() // showtime listings
 				.requestMatchers("/api/v1/seats/showtimes/**").permitAll() // seat availability
+				.requestMatchers("/api/v1/reviews/movies/**").permitAll() // public review listing
 				.requestMatchers("/api/v1/payments/webhook").permitAll() // stripe callbacks
 				.requestMatchers("/api/v1/health").permitAll() // for monitoring
 				.requestMatchers("/ws/**").permitAll() // websocket endpoint
@@ -144,6 +148,9 @@ public class SecurityConfig {
 
 			// add JWT filter before the standard auth filter
 			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            // add oauth2
+            .oauth2Login(oauth -> oauth
+                .successHandler(oAuth2SuccessHandler))
 
 			// handle auth errors nicely
 			.exceptionHandling(ex -> ex

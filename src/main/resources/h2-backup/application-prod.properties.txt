@@ -76,3 +76,7 @@ resilience4j.ratelimiter.instances.basic.timeoutDuration=1s
 # pdf
 pdf.receipt.directory=receipts
 app.name=CinemaBooking
+
+#oauth2 google
+spring.security.oauth2.client.registration.google.client-id=${CLIENT_ID}
+spring.security.oauth2.client.registration.google.client-secret=${CLIENT_SECRET}
