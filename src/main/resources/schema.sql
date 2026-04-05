@@ -102,9 +102,14 @@ CREATE TABLE IF NOT EXISTS reviews (
     downvotes INT DEFAULT 0, -- counter cache
     helpful_tags VARCHAR(255), -- comma-separated tags like 'funny,insightful'
     status VARCHAR(20) DEFAULT 'APPROVED', -- or PENDING, REJECTED
+    is_seen BOOLEAN DEFAULT FALSE, -- whether admin has seen this review
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (movie_id) REFERENCES movies(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci; -- todo: add index on movie_id
+
+-- added 2024-04-05: Ensure is_seen column exists for existing reviews table
+-- Note: MySQL 8.0.19+ supports ADD COLUMN IF NOT EXISTS
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_seen BOOLEAN DEFAULT FALSE;
 
 -- Create review_votes table if it doesn't exist
 CREATE TABLE IF NOT EXISTS review_votes (

@@ -47,6 +47,9 @@ public class Review {
     @Enumerated(EnumType.STRING) // store enum as string in db
     private ReviewStatus status = ReviewStatus.APPROVED;  // default to approved
 
+    @Column(name = "is_seen")
+    private boolean isSeen = false;  // whether admin has seen this review
+
     // auto-set timestamps on create
     @PrePersist
     protected void onCreate() {

@@ -31,6 +31,7 @@ public class ReviewDTO {
 
     // status & current user's vote
     private ReviewStatus status; // APPROVED, PENDING, etc
+    private boolean isSeen;             // has admin seen it
     private boolean userHasVoted;       // has current user voted
     private boolean userVoteIsUpvote;   // was it an upvote
 

@@ -129,6 +129,7 @@ public class SecurityConfig {
 				.requestMatchers("/api/v1/seats/showtimes/**").permitAll() // seat availability
 				.requestMatchers("/api/v1/payments/webhook").permitAll() // stripe callbacks
 				.requestMatchers("/api/v1/health").permitAll() // for monitoring
+				.requestMatchers("/ws/**").permitAll() // websocket endpoint
 				.requestMatchers("/api/v1/diagnostics/**").authenticated() // debug stuff - need auth
 				.anyRequest().authenticated() // everything else needs login
 			)

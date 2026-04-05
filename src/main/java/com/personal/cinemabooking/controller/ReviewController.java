@@ -164,6 +164,34 @@ public class ReviewController {
     }
 
     @RateLimiter(name = "basic")
+    @GetMapping("/unseen-count")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get unseen review count", description = "Returns the count of reviews that haven't been seen by an admin")
+    public ResponseEntity<ApiResponse<Long>> getUnseenReviewCount() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        long count = reviewService.getUnseenReviewCount(username);
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Unseen review count retrieved successfully",
+                count
+        ));
+    }
+
+    @RateLimiter(name = "basic")
+    @PutMapping("/mark-all-as-seen")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Mark all reviews as seen", description = "Marks all unseen reviews as seen at once (Admin only)")
+    public ResponseEntity<ApiResponse<Integer>> markAllAsSeen() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        int count = reviewService.markAllAsSeen(username);
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Marked all reviews as seen successfully",
+                count
+        ));
+    }
+
+    @RateLimiter(name = "basic")
     @PutMapping("/{reviewId}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Approve a review", description = "Approves a pending review (Admin only)")

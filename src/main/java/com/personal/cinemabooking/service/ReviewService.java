@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,9 @@ public class ReviewService {
 
     @Autowired
     private UserBlockService userBlockService;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     /**
      * Add a new review from user
@@ -69,6 +73,7 @@ public class ReviewService {
             // Set review status based on moderation settings
             // New reviews require admin approval before being visible to other users
             review.setStatus(ReviewStatus.PENDING); // require moderation
+            review.setSeen(false); // obviously new so not seen by admin yet
 
             // Set helpful tags if provided
             if (reviewRequest.getHelpfulTags() != null && !reviewRequest.getHelpfulTags().isEmpty()) {
@@ -83,6 +88,14 @@ public class ReviewService {
 
             Review savedReview = reviewRepository.save(review);
             log.info("Review successfully added with ID: {}", savedReview.getId());
+
+            // Notify admins via websocket that a new review has arrived
+            try {
+                messagingTemplate.convertAndSend("/topic/reviews", "NEW_REVIEW");
+                log.info("WS notification sent to /topic/reviews");
+            } catch (Exception wsEx) {
+                log.error("Failed to send WS notification: {}", wsEx.getMessage());
+            }
 
             // Refresh the entity to ensure all relationships are loaded
             // this is kinda redundant but hibernate can be weird sometimes
@@ -164,6 +177,24 @@ public class ReviewService {
         Page<Review> pendingReviews = reviewRepository.findByStatus(ReviewStatus.PENDING, pageable);
         return pendingReviews.map(review -> mapToDTO(review, username));
     }
+    //Realtime
+    // get total count of reviews that haven't been seen by admin
+    public long getUnseenReviewCount(String username) {
+        if (!hasRole(username, "ROLE_ADMIN")) {
+            throw new AccessDeniedException("Only admins can check review counts");
+        }
+        return reviewRepository.countByIsSeenFalse();
+    }
+
+    // admin marks all unseen reviews as seen at once
+    @Transactional
+    public int markAllAsSeen(String username) {
+        if (!hasRole(username, "ROLE_ADMIN")) {
+            throw new AccessDeniedException("Only admins can mark reviews as seen");
+        }
+        log.info("Admin {} is marking all reviews as seen", username);
+        return reviewRepository.markAllAsSeen();
+    }
 
     // admin hits the approve button
     @Transactional
@@ -244,6 +275,7 @@ public class ReviewService {
         dto.setDownvotes(review.getDownvotes());
         dto.setHelpfulTags(review.getHelpfulTags());
         dto.setStatus(review.getStatus());
+        dto.setSeen(review.isSeen());
 
         // Add null checks for Movie
         if (review.getMovie() != null) {

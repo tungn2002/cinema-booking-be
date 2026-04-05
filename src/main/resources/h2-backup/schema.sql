@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     downvotes INT DEFAULT 0,
     helpful_tags VARCHAR(255),
     status VARCHAR(20) DEFAULT 'APPROVED',
+    is_seen BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (movie_id) REFERENCES movies(id)
 );

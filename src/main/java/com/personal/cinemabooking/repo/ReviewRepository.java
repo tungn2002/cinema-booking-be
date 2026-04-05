@@ -7,6 +7,7 @@ import com.personal.cinemabooking.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -34,4 +35,12 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     // calc avg rating for a movie - only counts approved reviews!
     @Query("SELECT AVG(r.rating) FROM Review r WHERE r.movie.id = ?1 AND r.status = 'APPROVED'")
     Double getAverageRatingForMovie(Long movieId); // used for movie cards display
+
+    // mark all unseen reviews as seen
+    @Modifying
+    @Query("UPDATE Review r SET r.isSeen = true WHERE r.isSeen = false")
+    int markAllAsSeen();
+
+    // count how many reviews haven't been seen by admin yet
+    long countByIsSeenFalse();
 }
