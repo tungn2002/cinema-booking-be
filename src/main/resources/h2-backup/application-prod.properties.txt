@@ -80,3 +80,8 @@ app.name=CinemaBooking
 #oauth2 google
 spring.security.oauth2.client.registration.google.client-id=${CLIENT_ID}
 spring.security.oauth2.client.registration.google.client-secret=${CLIENT_SECRET}
+
+#redis
+spring.data.redis.host=${REDIS_HOST:rh}
+spring.data.redis.port=${REDIS_PORT:rp}
+spring.data.redis.password=${REDIS_PASSWORD:rps}

@@ -7,6 +7,9 @@ import com.personal.cinemabooking.repo.MovieRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -63,6 +66,7 @@ public class MovieService {
 
     // get single movie by id
     @Transactional(readOnly = true)
+    @Cacheable(value = "movies", key = "#id")
     public MovieDTO getMovieById(Long id) {
         log.info("Fetching movie with id: {}", id);
         Movie movie = movieRepository.findById(id)
@@ -72,6 +76,7 @@ public class MovieService {
 
     // update existing movie
     @Transactional
+    @CachePut(value = "movies", key = "#id")
     public MovieDTO updateMovie(Long id, Movie movieDetails) {
         log.info("Updating movie with id: {}", id);
         Movie movie = movieRepository.findById(id)
@@ -90,6 +95,7 @@ public class MovieService {
 
     // delete a movie if it has no dependencies
     @Transactional
+    @CacheEvict(value = "movies", key = "#id")
     public void deleteMovie(Long id) {
         log.info("Deleting movie with id: {}", id);
         Movie movie = movieRepository.findById(id)
