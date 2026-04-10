@@ -264,6 +264,48 @@ public class PaymentService {
         }
     }
 
+    /**
+     * Checks the actual status of a Stripe session and updates the database if paid.
+     * This is used by the scheduler to ensure we don't cancel reservations that were actually paid.
+     * @param sessionId The Stripe session ID (stored in payment_intent_id)
+     * @return true if payment is confirmed as SUCCEEDED, false otherwise
+     */
+    @Transactional
+    public boolean checkAndSyncStripePayment(String sessionId) {
+        log.info("Checking Stripe status for session: {}", sessionId);
+        try {
+            Stripe.apiKey = stripeApiKey;
+            Session session = Session.retrieve(sessionId);
+
+            String paymentStatus = session.getPaymentStatus();
+            String sessionStatus = session.getStatus();
+
+            log.info("Stripe session {} status: {}, payment_status: {}", sessionId, sessionStatus, paymentStatus);
+
+            if ("paid".equals(paymentStatus)) {
+                log.info("Payment confirmed by Stripe for session: {}. Updating database...", sessionId);
+
+                // Find payment by session ID
+                Payment payment = paymentRepository.findByPaymentIntentId(sessionId).orElse(null);
+
+                if (payment != null && payment.getStatus() != Payment.PaymentStatus.SUCCEEDED) {
+                    payment.setStatus(Payment.PaymentStatus.SUCCEEDED);
+                    payment.setUpdatedAt(LocalDateTime.now());
+                    paymentRepository.save(payment);
+
+                    // Update reservation status
+                    updateReservationStatus(payment.getReservation());
+                    return true;
+                } else if (payment != null && payment.getStatus() == Payment.PaymentStatus.SUCCEEDED) {
+                    return true; // Already updated
+                }
+            }
+        } catch (StripeException e) {
+            log.error("Error retrieving Stripe session {}: {}", sessionId, e.getMessage());
+        }
+        return false;
+    }
+
     // updates payment status to SUCCEEDED and marks reservation as paid
     // called when we get confirmation from stripe
     @Transactional

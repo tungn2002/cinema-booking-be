@@ -16,6 +16,7 @@ import com.personal.cinemabooking.repo.ShowtimeRepository;
 import com.personal.cinemabooking.repo.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +40,7 @@ public class ReservationService {
     private final PaymentRepository paymentRepository;
     private final MasterDataService masterDataService;
     private final ModelMapper modelMapper;
+    private final ObjectProvider<PaymentService> paymentServiceProvider;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -47,7 +49,7 @@ public class ReservationService {
     public ReservationService(ReservationRepository reservationRepository, UserRepository userRepository,
                              ShowtimeRepository showtimeRepository, SeatRepository seatRepository,
                              PaymentRepository paymentRepository, MasterDataService masterDataService,
-                             ModelMapper modelMapper) {
+                             ModelMapper modelMapper, ObjectProvider<PaymentService> paymentServiceProvider) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.showtimeRepository = showtimeRepository;
@@ -55,6 +57,7 @@ public class ReservationService {
         this.paymentRepository = paymentRepository;
         this.masterDataService = masterDataService;
         this.modelMapper = modelMapper;
+        this.paymentServiceProvider = paymentServiceProvider;
     }
 
     public List<ReservationDTO> getReservationsByUser(String username) {
@@ -444,11 +447,30 @@ public class ReservationService {
             return 0;
         }
 
-        log.info("Found {} expired reservations to cancel", expiredReservations.size());
+        log.info("Found {} expired reservations to process", expiredReservations.size());
 
         int canceledCount = 0;
+        PaymentService paymentService = paymentServiceProvider.getIfAvailable();
+
         for (Reservation reservation : expiredReservations) {
             try {
+                // Check if there's an associated payment on Stripe
+                com.personal.cinemabooking.entity.Payment payment = paymentRepository.findByReservation(reservation).orElse(null);
+
+                if (payment != null && payment.getPaymentIntentId() != null && paymentService != null) {
+                    // Try to sync with Stripe first
+                    log.info("Checking Stripe status for reservation #{} before cancel", reservation.getId());
+                    boolean isPaidOnStripe = paymentService.checkAndSyncStripePayment(payment.getPaymentIntentId());
+
+                    if (isPaidOnStripe) {
+                        log.info("Reservation #{} was actually paid on Stripe. Skipping cancellation.", reservation.getId());
+                        continue; // Skip cancellation as it's now marked as PAID
+                    }
+                }
+
+                // If not paid on Stripe (or no payment found), proceed with cancellation
+                log.info("Proceeding to cancel reservation #{}", reservation.getId());
+
                 // Free up seats
                 List<Seat> seats = reservation.getSeats();
                 seats.forEach(seat -> {
@@ -469,11 +491,11 @@ public class ReservationService {
                 canceledCount++;
                 log.info("Auto-canceled reservation #{} for user {}", reservation.getId(), reservation.getUser().getUserName());
             } catch (Exception e) {
-                log.error("Error auto-canceling reservation #{}: {}", reservation.getId(), e.getMessage());
+                log.error("Error processing expired reservation #{}: {}", reservation.getId(), e.getMessage());
             }
         }
 
-        log.info("Auto-cancel completed. Canceled {} reservations", canceledCount);
+        log.info("Auto-cancel process completed. {} reservations were canceled.", canceledCount);
         return canceledCount;
     }
 }
