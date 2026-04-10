@@ -6,12 +6,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 
 // user data access - auth, profile, admin stuff
 public interface UserRepository extends JpaRepository<User, Long> {
 	// find by username - used for login
 	Optional<User> findByUserName(String userName);
+
+    // Lock the user row to prevent concurrent reservation requests for the same user
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.userName = ?1")
+    Optional<User> findByUserNameWithLock(String userName);
 
 	// find by email - used for registration validation
 	Optional<User> findByEmail(String email);

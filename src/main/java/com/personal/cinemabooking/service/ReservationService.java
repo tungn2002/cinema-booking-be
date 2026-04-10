@@ -165,9 +165,16 @@ public class ReservationService {
             throw new IllegalArgumentException("At least one seat must be selected");
         }
 
-        // Find user
-        User user = userRepository.findByUserName(username)
+        // Find user with PESSIMISTIC_WRITE lock to prevent concurrent reservation requests
+        User user = userRepository.findByUserNameWithLock(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+
+        // Check if user already has an existing unpaid reservation (statusId=1 and paid=false)
+        List<Reservation> unpaidReservations = reservationRepository.findByUserAndPaidAndStatusId(user, false, 1);
+        if (!unpaidReservations.isEmpty()) {
+            log.warn("User {} already has an unpaid reservation. Blocking new reservation attempt.", username);
+            throw new IllegalStateException("You already have a pending reservation. Please complete payment or cancel it before booking another one.");
+        }
 
         // Find showtime
         Showtime showtime = showtimeRepository.findById(showtimeId)
