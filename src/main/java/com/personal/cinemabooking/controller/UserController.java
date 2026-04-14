@@ -110,16 +110,27 @@ public class UserController {
     @Operation(summary = "Update user role", description = "Updates a user's role (Admin only)")
     public ResponseEntity<ApiResponse<UserAdminDTO>> updateUserRole(
             @PathVariable Long id,
-            @RequestBody Map<String, Long> request) {
+            @RequestBody Map<String, Object> request) {
 
         // extract roleId from request
-        Long roleId = request.get("roleId");
-        if (roleId == null) {
+        Object roleIdObj = request.get("roleId");
+        if (roleIdObj == null) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(
                     false,
                     "Role ID is required", // simple error msg
                     null
             ));
+        }
+
+        Integer roleId;
+        if (roleIdObj instanceof Number) {
+            roleId = ((Number) roleIdObj).intValue();
+        } else {
+            try {
+                roleId = Integer.parseInt(roleIdObj.toString());
+            } catch (NumberFormatException e) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid Role ID format", null));
+            }
         }
 
         log.info("Updating role for user with id: {} to role id: {}", id, roleId);

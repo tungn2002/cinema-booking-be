@@ -110,7 +110,7 @@ public class UserService {
 
     // change user role - admin only operation
     @Transactional
-    public UserAdminDTO updateUserRole(Long userId, Long roleId) {
+    public UserAdminDTO updateUserRole(Long userId, Integer roleId) {
         log.info("Updating role for user with id: {} to role id: {}", userId, roleId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
