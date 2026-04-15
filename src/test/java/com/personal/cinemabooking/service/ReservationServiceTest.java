@@ -119,7 +119,7 @@ public class ReservationServiceTest {
 
     @Test
     void testCreateReservation_Success() {
-        when(userRepository.findByUserNameWithLock("testuser")).thenReturn(Optional.of(user));
+        when(userRepository.findByUserName("testuser")).thenReturn(Optional.of(user));
         when(reservationRepository.findByUserAndPaidAndStatusId(user, false, 1)).thenReturn(Arrays.asList());
         when(showtimeRepository.findById(1L)).thenReturn(Optional.of(showtime));
         when(seatRepository.findByIdInAndShowtimeIdWithLock(anyList(), eq(1L))).thenReturn(seats);
