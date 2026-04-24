@@ -107,10 +107,6 @@ CREATE TABLE IF NOT EXISTS reviews (
     FOREIGN KEY (movie_id) REFERENCES movies(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci; -- todo: add index on movie_id
 
--- added 2024-04-05: Ensure is_seen column exists for existing reviews table
--- Note: MySQL 8.0.19+ supports ADD COLUMN IF NOT EXISTS
-ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_seen BOOLEAN DEFAULT FALSE;
-
 -- Create review_votes table if it doesn't exist
 CREATE TABLE IF NOT EXISTS review_votes (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
