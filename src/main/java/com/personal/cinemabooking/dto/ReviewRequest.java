@@ -1,7 +1,7 @@
 package com.personal.cinemabooking.dto;
 
 import lombok.Data;
-import com.personal.cinemabooking.util.Constants;
+import com.personal.cinemabooking.utils.Constants;
 import jakarta.validation.constraints.*;
 
 // request for creating/updating reviews

@@ -1,5 +1,6 @@
 package com.personal.cinemabooking.dto;
 
+import com.personal.cinemabooking.enums.PaymentMethod;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -15,6 +16,11 @@ public class ReservationRequest {
     @NotEmpty(message = "At least one seat must be selected") // cant book 0 seats!
     private List<Long> seatIds;  // which seats to reserve
 
-    // note: user comes from auth context
-    // price calculated on server side
+    private PaymentMethod paymentMethod;
+
+    @NotNull(message = "Success URL is required")
+    private String successUrl;
+
+    @NotNull(message = "Cancel URL is required")
+    private String cancelUrl;
 }

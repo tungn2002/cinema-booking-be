@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentRequest {
+
+    private com.personal.cinemabooking.enums.PaymentMethod paymentMethod;
     @NotNull(message = "Reservation ID is required")
     private Long reservationId;  // which reservation to pay for
 

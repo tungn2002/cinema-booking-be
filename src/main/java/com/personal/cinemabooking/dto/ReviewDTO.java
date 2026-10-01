@@ -1,6 +1,8 @@
 package com.personal.cinemabooking.dto;
 
-import com.personal.cinemabooking.entity.Review.ReviewStatus;
+import com.personal.cinemabooking.enums.ReviewStatus;
+
+import com.personal.cinemabooking.entities.ReviewStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;

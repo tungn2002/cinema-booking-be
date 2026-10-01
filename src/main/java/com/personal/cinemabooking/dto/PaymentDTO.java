@@ -1,6 +1,8 @@
 package com.personal.cinemabooking.dto;
 
-import com.personal.cinemabooking.entity.Payment.PaymentStatus;
+import com.personal.cinemabooking.enums.PaymentStatus;
+
+import com.personal.cinemabooking.entities.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
