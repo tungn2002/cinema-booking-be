@@ -6,7 +6,7 @@ import com.personal.cinemabooking.dto.ReviewDTO;
 import com.personal.cinemabooking.dto.ReviewRequest;
 import com.personal.cinemabooking.entities.Movie;
 import com.personal.cinemabooking.entities.Review;
-import com.personal.cinemabooking.entities.ReviewStatus;
+import com.personal.cinemabooking.enums.ReviewStatus;
 import com.personal.cinemabooking.entities.ReviewVote;
 import com.personal.cinemabooking.entities.User;
 import com.personal.cinemabooking.core.exceptions.ResourceNotFoundException;

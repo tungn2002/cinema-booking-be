@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.personal.cinemabooking.enums.PaymentMethod;
 
 // payment request for stripe checkout
 @Data
@@ -12,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PaymentRequest {
 
-    private com.personal.cinemabooking.enums.PaymentMethod paymentMethod;
+    private PaymentMethod paymentMethod;
     @NotNull(message = "Reservation ID is required")
     private Long reservationId;  // which reservation to pay for
 

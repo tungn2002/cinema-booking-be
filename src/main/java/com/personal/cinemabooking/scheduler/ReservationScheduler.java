@@ -27,13 +27,13 @@ public class ReservationScheduler {
     private int expirationMinutes;
 
     /**
-     * Runs every 10 minutes to cancel expired confirmed reservations.
+     * Runs every 1 day to cancel expired confirmed reservations.
      * A reservation is considered expired if:
      * - Status is CONFIRMED (statusId = 1)
      * - Not paid (paid = false)
      * - Created more than 15 minutes ago (configurable via reservation.expiration.minutes)
      */
-    @Scheduled(fixedRateString = "${reservation.scheduler.fixed-rate:600000}") // Default: 10 minutes (600000 ms)
+    @Scheduled(fixedRateString = "${reservation.scheduler.fixed-rate:86400000}") // Default: 1 day (86400000 ms)
     public void autoCancelExpiredReservations() {
         log.info("Starting scheduled auto-cancel job for expired reservations");
 

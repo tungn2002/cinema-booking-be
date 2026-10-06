@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.time.format.DateTimeFormatter; // for formatting dates in emails
+import java.time.Year;
+import org.springframework.core.io.ByteArrayResource;
 
 @Service
 @Slf4j // for logging
@@ -123,12 +125,26 @@ public class EmailService {
         // Footer with copyright
         htmlBuilder.append("<div style='background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px;'>");
         htmlBuilder.append("<p>This is an automated email. Please do not reply to this message.</p>");
-        htmlBuilder.append("<p>&copy; ").append(java.time.Year.now()).append(" ").append(appName).append(". All rights reserved.</p>");
+        htmlBuilder.append("<p>&copy; ").append(Year.now()).append(" ").append(appName).append(". All rights reserved.</p>");
         htmlBuilder.append("</div>");
 
         htmlBuilder.append("</div>");
         htmlBuilder.append("</body></html>");
 
         return htmlBuilder.toString(); // final HTML string
+    }
+
+    public void sendEmailWithAttachment(String to, String subject, String text, byte[] attachment, String attachmentName) throws MessagingException {
+        MimeMessage message = emailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+        helper.setFrom(fromEmail);
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(text);
+        
+        ByteArrayResource resource = new ByteArrayResource(attachment);
+        helper.addAttachment(attachmentName, resource);
+        
+        emailSender.send(message);
     }
 }

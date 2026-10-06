@@ -11,6 +11,7 @@ import com.personal.cinemabooking.entities.Seat;
 import com.personal.cinemabooking.entities.Showtime;
 import com.personal.cinemabooking.entities.User;
 import com.personal.cinemabooking.core.exceptions.ResourceNotFoundException;
+import com.personal.cinemabooking.entities.Payment;
 import com.personal.cinemabooking.repositories.PaymentRepository;
 import com.personal.cinemabooking.repositories.ReservationRepository;
 import com.personal.cinemabooking.repositories.SeatRepository;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import com.personal.cinemabooking.services.SeatLockService;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -31,6 +33,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Service
 @Slf4j
@@ -43,6 +46,7 @@ public class ReservationService {
     private final MasterDataService masterDataService;
     private final ModelMapper modelMapper;
     private final ObjectProvider<PaymentService> paymentServiceProvider;
+    private final SeatLockService seatLockService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -51,7 +55,8 @@ public class ReservationService {
     public ReservationService(ReservationRepository reservationRepository, UserRepository userRepository,
                              ShowtimeRepository showtimeRepository, SeatRepository seatRepository,
                              PaymentRepository paymentRepository, MasterDataService masterDataService,
-                             ModelMapper modelMapper, ObjectProvider<PaymentService> paymentServiceProvider) {
+                             ModelMapper modelMapper, ObjectProvider<PaymentService> paymentServiceProvider,
+                             SeatLockService seatLockService) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.showtimeRepository = showtimeRepository;
@@ -60,6 +65,7 @@ public class ReservationService {
         this.masterDataService = masterDataService;
         this.modelMapper = modelMapper;
         this.paymentServiceProvider = paymentServiceProvider;
+        this.seatLockService = seatLockService;
     }
 
     public List<ReservationDTO> getReservationsByUser(String username) {
@@ -106,22 +112,17 @@ public class ReservationService {
     }
 
     @Transactional
-    public CheckoutSessionDTO bookAndPay(ReservationRequest req, String username) throws Exception {
-        // 1. Create the reservation
+    public CheckoutSessionDTO bookAndPay(ReservationRequest req, String username) {
         ReservationDTO reservation = createReservation(username, req.getShowtimeId(), req.getSeatIds());
-        
-        // 2. Generate checkout session
-        PaymentService paymentService = paymentServiceProvider.getIfAvailable();
-        if (paymentService == null) {
-            throw new IllegalStateException("Payment service is currently unavailable");
+        PaymentService paymentService = paymentServiceProvider.getObject();
+        try {
+            return paymentService.createCheckoutSession(
+                reservation.getId(), 
+                req.getPaymentMethod()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create checkout session", e);
         }
-        
-        return paymentService.createCheckoutSession(
-            reservation.getId(), 
-            req.getSuccessUrl(), 
-            req.getCancelUrl(), 
-            req.getPaymentMethod()
-        );
     }
 
     /**
@@ -213,67 +214,93 @@ public class ReservationService {
             throw new IllegalStateException("Not enough available seats for this showtime");
         }
 
-        // Get seats with pessimistic lock to prevent concurrent reservations
-        // this is super important!! otherwise we could double-book seats
-        List<Seat> seats = seatRepository.findByIdInAndShowtimeIdWithLock(seatIds, showtimeId);
+        // --- NEW: REDIS ATOMIC SEAT LOCKING ---
+        List<Long> lockedSeats = new ArrayList<>();
+        try {
+            for (Long seatId : seatIds) {
+                boolean locked = seatLockService.lockSeat(showtimeId, seatId, username);
+                if (!locked) {
+                    throw new IllegalStateException("Seat " + seatId + " is currently locked by someone else. Please choose another.");
+                }
+                lockedSeats.add(seatId);
+            }
+        } catch (Exception e) {
+            // Unlock successfully locked seats if one fails
+            for (Long lockedId : lockedSeats) {
+                seatLockService.unlockSeat(showtimeId, lockedId);
+            }
+            throw e;
+        }
 
-        // Validate seats
-        if (seats.size() != seatIds.size()) {
-            List<Long> foundSeatIds = seats.stream().map(Seat::getId).collect(Collectors.toList());
-            List<Long> notFoundSeatIds = seatIds.stream()
-                    .filter(id -> !foundSeatIds.contains(id))
+        try {
+            // Get seats with pessimistic lock to prevent concurrent reservations
+            // this is super important!! otherwise we could double-book seats
+            List<Seat> seats = seatRepository.findByIdInAndShowtimeIdWithLock(seatIds, showtimeId);
+
+            // Validate seats
+            if (seats.size() != seatIds.size()) {
+                List<Long> foundSeatIds = seats.stream().map(Seat::getId).collect(Collectors.toList());
+                List<Long> notFoundSeatIds = seatIds.stream()
+                        .filter(id -> !foundSeatIds.contains(id))
+                        .collect(Collectors.toList());
+                throw new ResourceNotFoundException("Seats not found with IDs: " + notFoundSeatIds);
+            }
+
+            // Verify all seats belong to the requested showtime
+            List<Seat> wrongShowtimeSeats = seats.stream()
+                    .filter(seat -> !seat.getShowtime().getId().equals(showtimeId))
                     .collect(Collectors.toList());
-            throw new ResourceNotFoundException("Seats not found with IDs: " + notFoundSeatIds);
+
+            if (!wrongShowtimeSeats.isEmpty()) {
+                String wrongSeatNumbers = wrongShowtimeSeats.stream()
+                        .map(Seat::getSeatNumber)
+                        .collect(Collectors.joining(", "));
+                throw new IllegalArgumentException("Seats " + wrongSeatNumbers + " do not belong to the requested showtime");
+            }
+
+            // Check if any seat is already reserved
+            List<Seat> reservedSeats = seats.stream()
+                    .filter(Seat::getIsReserved)
+                    .collect(Collectors.toList());
+
+            if (!reservedSeats.isEmpty()) {
+                String reservedSeatNumbers = reservedSeats.stream()
+                        .map(Seat::getSeatNumber)
+                        .collect(Collectors.joining(", "));
+                throw new IllegalStateException("Seats already reserved: " + reservedSeatNumbers);
+            }
+
+            // Create reservation
+            Reservation reservation = new Reservation();
+            reservation.setUser(user);
+            reservation.setShowtime(showtime);
+            reservation.setReservationTime(LocalDateTime.now());
+            reservation.setStatusId(1); // 1 = CONFIRMED
+            // calc total price based on # of seats
+            reservation.setTotalPrice(showtime.getPrice() * seats.size());
+
+            Reservation savedReservation = reservationRepository.save(reservation);
+
+            // Update seats
+            seats.forEach(seat -> {
+                seat.setIsReserved(true);
+                seat.setReservation(savedReservation);
+            });
+
+            seatRepository.saveAll(seats);
+
+            // Update available seats count in showtime
+            showtime.setAvailableSeats(showtime.getAvailableSeats() - seats.size());
+            showtimeRepository.save(showtime);
+
+            return mapToDTO(savedReservation);
+        } catch (Exception e) {
+            // DB validation or save failed! Must release Redis locks immediately
+            for (Long lockedId : lockedSeats) {
+                seatLockService.unlockSeat(showtimeId, lockedId);
+            }
+            throw e;
         }
-
-        // Verify all seats belong to the requested showtime
-        List<Seat> wrongShowtimeSeats = seats.stream()
-                .filter(seat -> !seat.getShowtime().getId().equals(showtimeId))
-                .collect(Collectors.toList());
-
-        if (!wrongShowtimeSeats.isEmpty()) {
-            String wrongSeatNumbers = wrongShowtimeSeats.stream()
-                    .map(Seat::getSeatNumber)
-                    .collect(Collectors.joining(", "));
-            throw new IllegalArgumentException("Seats " + wrongSeatNumbers + " do not belong to the requested showtime");
-        }
-
-        // Check if any seat is already reserved
-        List<Seat> reservedSeats = seats.stream()
-                .filter(Seat::getIsReserved)
-                .collect(Collectors.toList());
-
-        if (!reservedSeats.isEmpty()) {
-            String reservedSeatNumbers = reservedSeats.stream()
-                    .map(Seat::getSeatNumber)
-                    .collect(Collectors.joining(", "));
-            throw new IllegalStateException("Seats already reserved: " + reservedSeatNumbers);
-        }
-
-        // Create reservation
-        Reservation reservation = new Reservation();
-        reservation.setUser(user);
-        reservation.setShowtime(showtime);
-        reservation.setReservationTime(LocalDateTime.now());
-        reservation.setStatusId(1); // 1 = CONFIRMED
-        // calc total price based on # of seats
-        reservation.setTotalPrice(showtime.getPrice() * seats.size());
-
-        Reservation savedReservation = reservationRepository.save(reservation);
-
-        // Update seats
-        seats.forEach(seat -> {
-            seat.setIsReserved(true);
-            seat.setReservation(savedReservation);
-        });
-
-        seatRepository.saveAll(seats);
-
-        // Update available seats count in showtime
-        showtime.setAvailableSeats(showtime.getAvailableSeats() - seats.size());
-        showtimeRepository.save(showtime);
-
-        return mapToDTO(savedReservation);
     }
 
     @Transactional
@@ -302,6 +329,9 @@ public class ReservationService {
         seats.forEach(seat -> {
             seat.setIsReserved(false);
             seat.setReservation(null);
+            if (reservation.getShowtime() != null) {
+                seatLockService.unlockSeat(reservation.getShowtime().getId(), seat.getId());
+            }
         });
 
         seatRepository.saveAll(seats);
@@ -313,6 +343,33 @@ public class ReservationService {
 
         Reservation updatedReservation = reservationRepository.save(reservation);
         return mapToDTO(updatedReservation);
+    }
+
+    @Transactional
+    public void cancelReservationSystem(Long reservationId) {
+        log.info("System canceling reservation with id: {}", reservationId);
+        Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
+        if (reservation == null || reservation.getStatusId() == 3) {
+            return;
+        }
+
+        reservation.setStatusId(3); // 3 = CANCELED
+        List<Seat> seats = reservation.getSeats();
+        seats.forEach(seat -> {
+            seat.setIsReserved(false);
+            seat.setReservation(null);
+            if (reservation.getShowtime() != null) {
+                seatLockService.unlockSeat(reservation.getShowtime().getId(), seat.getId());
+            }
+        });
+        seatRepository.saveAll(seats);
+
+        Showtime showtime = reservation.getShowtime();
+        if (showtime != null) {
+            showtime.setAvailableSeats(showtime.getAvailableSeats() + seats.size());
+            showtimeRepository.save(showtime);
+        }
+        reservationRepository.save(reservation);
     }
 
     // quick helper to check if user has specific role
@@ -483,7 +540,7 @@ public class ReservationService {
         for (Reservation reservation : expiredReservations) {
             try {
                 // Check if there's an associated payment on Stripe
-                com.personal.cinemabooking.entities.Payment payment = paymentRepository.findByReservation(reservation).orElse(null);
+                Payment payment = paymentRepository.findByReservation(reservation).orElse(null);
 
                 if (payment != null && payment.getPaymentIntentId() != null && paymentService != null) {
                     // Try to sync with Stripe first
@@ -504,6 +561,10 @@ public class ReservationService {
                 seats.forEach(seat -> {
                     seat.setIsReserved(false);
                     seat.setReservation(null);
+                    // Broadcast UNLOCK via WebSocket/Redis
+                    if (reservation.getShowtime() != null) {
+                        seatLockService.unlockSeat(reservation.getShowtime().getId(), seat.getId());
+                    }
                 });
                 seatRepository.saveAll(seats);
 
@@ -525,5 +586,59 @@ public class ReservationService {
 
         log.info("Auto-cancel process completed. {} reservations were canceled.", canceledCount);
         return canceledCount;
+    }
+
+    @Transactional
+    public void handleSeatExpiration(Long showtimeId, Long seatId) {
+        log.info("Handling seat expiration from Redis TTL for showtime {}, seat {}", showtimeId, seatId);
+        Seat seat = seatRepository.findById(seatId).orElse(null);
+        
+        if (seat != null && seat.getIsReserved()) {
+            Reservation reservation = seat.getReservation();
+            if (reservation != null && !reservation.isPaid() && reservation.getStatusId() == 1) { // 1 = CONFIRMED
+                PaymentService paymentService = paymentServiceProvider.getIfAvailable();
+                if (paymentService != null) {
+                    Payment payment = paymentRepository.findByReservation(reservation).orElse(null);
+                    if (payment != null && payment.getPaymentIntentId() != null) {
+                        boolean isPaidOnStripe = paymentService.checkAndSyncStripePayment(payment.getPaymentIntentId());
+                        if (isPaidOnStripe) {
+                            log.info("Reservation #{} was actually paid on Stripe. Skipping cancellation.", reservation.getId());
+                            return;
+                        }
+                    }
+                }
+                
+                log.info("Canceling reservation #{} due to seat lock expiration", reservation.getId());
+                
+                // Free up ALL seats in this reservation to avoid partial state
+                List<Seat> seats = reservation.getSeats();
+                for (Seat s : seats) {
+                    s.setIsReserved(false);
+                    s.setReservation(null);
+                    // Broadcast UNLOCK via WebSocket
+                    if (reservation.getShowtime() != null) {
+                        seatLockService.broadcastSeatStatus(reservation.getShowtime().getId(), s.getId(), "AVAILABLE");
+                    }
+                }
+                seatRepository.saveAll(seats);
+
+                // Update available seats count in showtime
+                Showtime showtime = reservation.getShowtime();
+                showtime.setAvailableSeats(showtime.getAvailableSeats() + seats.size());
+                showtimeRepository.save(showtime);
+
+                // Update reservation status to CANCELED
+                reservation.setStatusId(3); // 3 = CANCELED
+                reservationRepository.save(reservation);
+            } else if (reservation == null) {
+                // Failsafe: locked in DB but no reservation
+                seat.setIsReserved(false);
+                seatRepository.save(seat);
+                seatLockService.broadcastSeatStatus(showtimeId, seatId, "AVAILABLE");
+            }
+        } else {
+            // Failsafe: broadcast just in case client is stuck
+            seatLockService.broadcastSeatStatus(showtimeId, seatId, "AVAILABLE");
+        }
     }
 }

@@ -1,7 +1,6 @@
 package com.personal.cinemabooking.core.exceptions;
 
 import com.personal.cinemabooking.dto.ApiResponse;
-import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -21,14 +20,7 @@ public class GlobalExceptionHandler {
     // handles all the exceptions thrown by our controllers
     // makes sure we return nice error msgs to clients
 
-    // handles rate limiting - when users are spamming our api
-    @ExceptionHandler(RequestNotPermitted.class)
-    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceededException(RequestNotPermitted ex) {
-        log.warn("Rate limit exceeded: {}", ex.getMessage()); // just warn level, not error
-        return ResponseEntity
-            .status(HttpStatus.TOO_MANY_REQUESTS) // 429 status
-            .body(new ApiResponse<>(false, "system.rate.limit.exceeded", null)); // i18n key
-    }
+
 
 
     @ExceptionHandler(ResourceNotFoundException.class)

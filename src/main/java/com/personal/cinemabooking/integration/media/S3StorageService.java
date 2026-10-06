@@ -30,7 +30,7 @@ public class S3StorageService {
             // Check if bucket exists
             try {
                 s3Client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
-            } catch (NoSuchBucketException | S3Exception e) {
+            } catch (S3Exception e) {
                 if (e instanceof NoSuchBucketException || e.getMessage().contains("Not Found")) {
                     s3Client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
                 } else {

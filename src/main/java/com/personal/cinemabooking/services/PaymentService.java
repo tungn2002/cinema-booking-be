@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import com.personal.cinemabooking.services.payment.PaymentFactory;
 
 import java.util.Optional;
 
@@ -36,7 +37,7 @@ public class PaymentService {
         this.paymentFactory = paymentFactory;
     }
 
-    public CheckoutSessionDTO createCheckoutSession(Long reservationId, String successUrl, String cancelUrl, PaymentMethod method) throws Exception {
+    public CheckoutSessionDTO createCheckoutSession(Long reservationId, PaymentMethod method) throws Exception {
 
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found"));
@@ -47,7 +48,7 @@ public class PaymentService {
         }
 
         PaymentProvider provider = paymentFactory.getProvider(method);
-        return provider.createPaymentSession(reservation, successUrl, cancelUrl);
+        return provider.createPaymentSession(reservation);
     }
 
     public void handleWebhookEvent(HttpServletRequest request, String payload, PaymentMethod method) throws Exception {
@@ -61,5 +62,17 @@ public class PaymentService {
         Payment payment = paymentRepository.findByReservation(reservation)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
         return modelMapper.map(payment, PaymentDTO.class);
+    }
+
+    public boolean checkAndSyncStripePayment(String paymentIntentId) {
+        try {
+            Payment payment = paymentRepository.findByPaymentIntentId(paymentIntentId).orElse(null);
+            if (payment == null) return false;
+            PaymentProvider provider = paymentFactory.getProvider(payment.getPaymentMethod());
+            return provider.checkAndSyncPayment(paymentIntentId);
+        } catch (Exception e) {
+            log.error("Error syncing payment: {}", paymentIntentId, e);
+            return false;
+        }
     }
 }

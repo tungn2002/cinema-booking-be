@@ -4,7 +4,7 @@ import com.personal.cinemabooking.enums.ReviewStatus;
 
 import com.personal.cinemabooking.entities.Movie;
 import com.personal.cinemabooking.entities.Review;
-import com.personal.cinemabooking.entities.ReviewStatus;
+import com.personal.cinemabooking.enums.ReviewStatus;
 import com.personal.cinemabooking.entities.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

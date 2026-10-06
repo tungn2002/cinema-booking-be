@@ -38,24 +38,23 @@ import java.util.stream.Collectors; // needed for joining strings in logs
 @Slf4j // for logging stuff
 @Tag(name = "Reservations", description = "Reservation management APIs") // swagger docs
 public class ReservationController {
-    // New Book & Pay API
-    @PostMapping("/book-and-pay")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<CheckoutSessionDTO>> bookAndPay(@Valid @RequestBody com.personal.cinemabooking.dto.PaymentRequest req) {
-        try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            // Create reservation first. (req should have showtimeId and seatIds ideally, but this is a stub for the logic)
-            // For now, this assumes reservationId is already present or we inject it
-            CheckoutSessionDTO dto = reservationService.bookAndPay(req, username); // We'll add this in service
-            return ResponseEntity.ok(new ApiResponse<>(true, "Booked & Session created", dto));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, e.getMessage(), null));
-        }
-    }
-
     private final ReservationService reservationService; // handles business logic
 
     private final MessageSource messageSource; // for i18n messages
+    
+    @PostMapping
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Create reservation", description = "Creates a new reservation")
+    public ResponseEntity<ApiResponse<ReservationDTO>> createReservation(@Valid @RequestBody ReservationRequest req) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            ReservationDTO reservation = reservationService.createReservation(username, req.getShowtimeId(), req.getSeatIds());
+            return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(true, "Reservation created", reservation));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
     @GetMapping("/my-reservations")
     @PreAuthorize("isAuthenticated()") // user must be logged in
     @Operation(summary = "Get user's reservations", description = "Returns all reservations for the authenticated user")
@@ -180,13 +179,13 @@ public class ReservationController {
         )); // success!
     }
 
-    @PostMapping("/book-and-pay") // create reservation and get payment link
-    @PreAuthorize("isAuthenticated()") // must be logged in
-    @Operation(summary = "Create reservation & Pay", description = "Creates a new reservation and returns a checkout session for payment")
-    public ResponseEntity<ApiResponse<CheckoutSessionDTO>> bookAndPay(
-            @Valid @RequestBody ReservationRequest reservationRequest) {
+    // New Book & Pay API
+    @PostMapping("/book-and-pay")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Book and Pay", description = "Creates a reservation and initiates payment")
+    public ResponseEntity<ApiResponse<CheckoutSessionDTO>> bookAndPay(@Valid @RequestBody ReservationRequest reservationRequest) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        log.info("Book and Pay requested for user: {} for showtime: {} with seats: {}",
+        log.info("Booking and paying for showtime: {} with seats: {}",
                 username, reservationRequest.getShowtimeId(), reservationRequest.getSeatIds());
 
         try {

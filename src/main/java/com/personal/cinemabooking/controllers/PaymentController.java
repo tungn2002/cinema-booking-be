@@ -30,10 +30,8 @@ public class PaymentController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CheckoutSessionDTO>> createCheckoutSession(@Valid @RequestBody PaymentRequest req) {
         try {
-            if (req.getSuccessUrl() == null || req.getCancelUrl() == null) {
-                return ResponseEntity.badRequest().body(new ApiResponse<>(false, "URLs required", null));
-            }
-            CheckoutSessionDTO dto = paymentService.createCheckoutSession(req.getReservationId(), req.getSuccessUrl(), req.getCancelUrl(), req.getPaymentMethod());
+            
+            CheckoutSessionDTO dto = paymentService.createCheckoutSession(req.getReservationId(), req.getPaymentMethod());
             return ResponseEntity.ok(new ApiResponse<>(true, "Session created", dto));
         } catch (Exception e) {
             log.error("Error creating session", e);
@@ -70,6 +68,19 @@ public class PaymentController {
             return ResponseEntity.ok(new ApiResponse<>(true, "Retrieved", paymentService.getPaymentByReservationId(reservationId)));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @PostMapping("/capture-paypal/{reservationId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Boolean>> capturePaypal(@PathVariable Long reservationId) {
+        try {
+            PaymentDTO payment = paymentService.getPaymentByReservationId(reservationId);
+            boolean synced = paymentService.checkAndSyncStripePayment(payment.getPaymentIntentId());
+            return ResponseEntity.ok(new ApiResponse<>(true, "Captured", synced));
+        } catch (Exception e) {
+            log.error("Paypal capture error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, e.getMessage(), false));
         }
     }
 }

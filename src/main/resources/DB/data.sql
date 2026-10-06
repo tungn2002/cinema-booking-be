@@ -4,13 +4,13 @@ INSERT INTO component_types (id, name) VALUES (1, 'RESERVATION_STATUS')
 ON DUPLICATE KEY UPDATE name = 'RESERVATION_STATUS'; -- avoid dupes
 
 -- reservation statuses - used in the reservations table
--- 1=confirmed (initial state), 2=paid, 3=canceled
+-- 1=CONFIRMED (initial state), 2=CANCELLED, 3=PENDING
 INSERT INTO master_data (master_data_id, data_value, component_type_id) VALUES (1, 'CONFIRMED', 1)
 ON DUPLICATE KEY UPDATE data_value = 'CONFIRMED';
-INSERT INTO master_data (master_data_id, data_value, component_type_id) VALUES (2, 'PAID', 1)
-ON DUPLICATE KEY UPDATE data_value = 'PAID';
-INSERT INTO master_data (master_data_id, data_value, component_type_id) VALUES (3, 'CANCELED', 1)
-ON DUPLICATE KEY UPDATE data_value = 'CANCELED';
+INSERT INTO master_data (master_data_id, data_value, component_type_id) VALUES (2, 'CANCELLED', 1)
+ON DUPLICATE KEY UPDATE data_value = 'CANCELLED';
+INSERT INTO master_data (master_data_id, data_value, component_type_id) VALUES (3, 'PENDING', 1)
+ON DUPLICATE KEY UPDATE data_value = 'PENDING';
 
 -- Update any existing reservations to use the new status IDs
 UPDATE reservations SET status_id = 1 WHERE status_id IS NULL;
@@ -326,3 +326,15 @@ INSERT INTO seats (showtime_id, seat_number, is_reserved) VALUES
 (16, 'A1', false), (16, 'A2', false), (16, 'A3', false), (16, 'A4', false), (16, 'A5', false),
 -- Showtime 23
 (23, 'A1', false), (23, 'A2', false), (23, 'A3', false), (23, 'A4', false), (23, 'A5', false);
+
+-- Seed sample Reviews using new ReviewStatus enum
+INSERT INTO reviews (id, user_id, movie_id, comment, rating, created_at, updated_at, upvotes, downvotes, helpful_tags, status, is_seen)
+SELECT 1, (SELECT id FROM users WHERE user_name = 'user'), 1, 'Amazing movie! Mind blown.', 5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 10, 0, 'insightful', 'APPROVED', true
+WHERE NOT EXISTS (SELECT 1 FROM reviews WHERE id = 1);
+
+INSERT INTO reviews (id, user_id, movie_id, comment, rating, created_at, updated_at, upvotes, downvotes, helpful_tags, status, is_seen)
+SELECT 2, (SELECT id FROM users WHERE user_name = 'user'), 2, 'Good but a bit confusing.', 4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 2, 1, 'funny', 'PENDING', false
+WHERE NOT EXISTS (SELECT 1 FROM reviews WHERE id = 2);
+
+-- Reset auto-increment for reviews
+ALTER TABLE reviews AUTO_INCREMENT = 3;

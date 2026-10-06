@@ -7,6 +7,11 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public interface PaymentProvider {
     PaymentMethod getPaymentMethod();
-    CheckoutSessionDTO createPaymentSession(Reservation reservation, String successUrl, String cancelUrl) throws Exception;
+    
+    // Instead of successUrl/cancelUrl, we just return clientSecret for Embedded UI
+    CheckoutSessionDTO createPaymentSession(Reservation reservation) throws Exception;
+    
     void handleWebhook(HttpServletRequest request, String payload) throws Exception;
+    
+    boolean checkAndSyncPayment(String paymentIntentId);
 }

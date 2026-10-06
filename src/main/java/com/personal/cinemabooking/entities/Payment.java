@@ -1,6 +1,7 @@
 package com.personal.cinemabooking.entities;
 
 import com.personal.cinemabooking.enums.PaymentStatus;
+import com.personal.cinemabooking.enums.PaymentMethod;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -19,7 +20,7 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false)
-    private com.personal.cinemabooking.enums.PaymentMethod paymentMethod = com.personal.cinemabooking.enums.PaymentMethod.STRIPE;
+    private PaymentMethod paymentMethod = PaymentMethod.STRIPE;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
