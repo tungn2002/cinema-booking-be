@@ -37,7 +37,7 @@ public class PaymentSuccessEventListener {
             log.info("Successfully sent receipt email for payment ID: {}", event.getPaymentId());
         } catch (Exception e) {
             log.error("Failed to generate or send receipt for payment ID: {}", event.getPaymentId(), e);
-            throw e; // throw so that @Retryable knows it failed
+            throw new RuntimeException("Failed to process payment success", e); // Wrap checked exception to satisfy compiler while allowing @Retryable to work
         }
     }
 }
