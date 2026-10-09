@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: cinema_mysql_prod
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-moviereviewdbupdated}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    networks:
+      - cinema_network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: cinema_redis_prod
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redispass} --notify-keyspace-events Ex
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - cinema_network
+
+  minio:
+    image: minio/minio:RELEASE.2024-03-30T09-41-56Z
+    container_name: cinema_minio_prod
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+    networks:
+      - cinema_network
+
+  minio-create-bucket:
+    image: minio/mc:RELEASE.2024-03-30T11-58-00Z
+    container_name: cinema_minio_setup_prod
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set myminio http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin}; do
+        echo 'Waiting for minio to start...';
+        sleep 3;
+      done;
+      mc mb myminio/${MINIO_BUCKET:-cinema-booking} --ignore-existing;
+      mc anonymous set public myminio/${MINIO_BUCKET:-cinema-booking};
+      exit 0;
+      "
+    networks:
+      - cinema_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cinema_backend_prod
+    expose:
+      - "8080"
+    depends_on:
+      - mysql
+      - redis
+      - minio
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_URL=jdbc:mysql://mysql:3306/${DB_NAME:-moviereviewdbupdated}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-root}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redispass}
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL:-https://cinemabooking.io.vn/storage}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET=${MINIO_BUCKET:-cinema-booking}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600000}
+      - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
+      - PAYPAL_MODE=${PAYPAL_MODE:-live}
+      - CLIENT_ID=${CLIENT_ID}
+      - CLIENT_SECRET=${CLIENT_SECRET}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-*}
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - cinema_network
+
+  frontend:
+    build:
+      context: ../cinema-booking-fe
+      dockerfile: Dockerfile
+    container_name: cinema_frontend_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Mount thư mục chứa chứng chỉ SSL thực tế trên máy host của bạn
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - cinema_network
+
+volumes:
+  mysql_data:
+  redis_data:
+  minio_data:
+
+networks:
+  cinema_network:
+    driver: bridge

@@ -25,6 +25,9 @@ public class S3StorageService {
     @Value("${s3-client.endpoint}")
     private String endpoint;
 
+    @Value("${s3-client.public-url}")
+    private String publicUrl;
+
     public Map<String, Object> uploadImage(MultipartFile file) {
         try {
             // Check if bucket exists
@@ -48,7 +51,7 @@ public class S3StorageService {
 
             s3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            String secureUrl = String.format("%s/%s/%s", endpoint, bucketName, filename);
+            String secureUrl = String.format("%s/%s", publicUrl, filename);
             
             Map<String, Object> result = new HashMap<>();
             result.put("secure_url", secureUrl);
@@ -87,7 +90,7 @@ public class S3StorageService {
             for (S3Object s3Object : response.contents()) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("public_id", s3Object.key());
-                map.put("secure_url", String.format("%s/%s/%s", endpoint, bucketName, s3Object.key()));
+                map.put("secure_url", String.format("%s/%s", publicUrl, s3Object.key()));
                 images.add(map);
             }
         } catch (S3Exception e) {
