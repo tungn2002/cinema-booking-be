@@ -18,9 +18,4 @@ public class ReservationRequest {
 
     private PaymentMethod paymentMethod;
 
-    @NotNull(message = "Success URL is required")
-    private String successUrl;
-
-    @NotNull(message = "Cancel URL is required")
-    private String cancelUrl;
 }
