@@ -70,6 +70,7 @@ jobs:
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          set -e
           cd /var/www/cinema-booking-be
           
           # Đảm bảo tắt backend cũ nếu có thay đổi port hoặc volume
