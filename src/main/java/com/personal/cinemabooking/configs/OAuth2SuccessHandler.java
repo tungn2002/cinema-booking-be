@@ -58,6 +58,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String token = jwtUtil.generateToken(user);
 
         String redirectUrl = allowedOrigins.split(",")[0];
+        if ("*".equals(redirectUrl)) {
+            redirectUrl = "/";
+        }
+        
         getRedirectStrategy().sendRedirect(
                 request,
                 response,
