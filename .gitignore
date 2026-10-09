@@ -43,11 +43,6 @@ logs/
 ### Generated PDFs ###
 receipts/
 
-### Application Properties with Sensitive Data ###
-application-local.properties
-application-dev.properties
-application-prod.properties
-
 ### Compiled class file ###
 *.class
 
