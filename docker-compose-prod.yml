@@ -70,7 +70,7 @@ services:
       - "DB_URL=jdbc:mysql://mysql:3306/${DB_NAME:-moviereviewdbupdated}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
       - DB_USERNAME=${DB_USERNAME:-root}
       - DB_PASSWORD=${DB_PASSWORD:-root}
-      - REDIS_HOST=redis
+      - REDIS_HOST=cinema_redis_prod
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redispass}
       - MINIO_ENDPOINT=http://minio:9000
