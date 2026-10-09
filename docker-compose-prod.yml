@@ -10,6 +10,11 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - cinema_network
 
@@ -62,9 +67,12 @@ services:
     expose:
       - "8080"
     depends_on:
-      - mysql
-      - redis
-      - minio
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - "DB_URL=jdbc:mysql://mysql:3306/${DB_NAME:-moviereviewdbupdated}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
