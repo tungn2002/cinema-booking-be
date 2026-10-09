@@ -24,20 +24,7 @@ services:
       - cinema_network
 
   minio:
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM golang:alpine AS builder
-        RUN apk add --no-cache git
-        RUN go install github.com/minio/minio@latest
-
-        FROM alpine:3.19
-        RUN apk add --no-cache ca-certificates
-        COPY --from=builder /go/bin/minio /usr/bin/minio
-        RUN mkdir -p /data
-        EXPOSE 9000
-        EXPOSE 9001
-        ENTRYPOINT ["minio", "server", "/data", "--console-address", ":9001"]
+    image: lmtung/cinema-minio:latest
     container_name: cinema_minio_prod
     command: server /data --console-address ":9001"
     environment:
@@ -50,16 +37,7 @@ services:
       - cinema_network
 
   minio-create-bucket:
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM golang:alpine AS builder
-        RUN apk add --no-cache git
-        RUN go install github.com/minio/mc@latest
-        
-        FROM alpine:3.19
-        RUN apk add --no-cache ca-certificates
-        COPY --from=builder /go/bin/mc /usr/bin/mc
+    image: lmtung/cinema-minio-setup:latest
     container_name: cinema_minio_setup_prod
     depends_on:
       - minio
