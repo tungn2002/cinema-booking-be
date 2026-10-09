@@ -67,6 +67,7 @@ services:
       - minio
     environment:
       - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${DB_NAME:-moviereviewdbupdated}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - "DB_URL=jdbc:mysql://mysql:3306/${DB_NAME:-moviereviewdbupdated}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
       - DB_USERNAME=${DB_USERNAME:-root}
       - DB_PASSWORD=${DB_PASSWORD:-root}
