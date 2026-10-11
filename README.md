@@ -41,7 +41,7 @@
 
 | Feature | Description |
 |---|---|
-| 🎟️ **Atomic Seat Locking (Redis Lua)** | Khóa ghế nguyên tử chống Race Condition bằng Redis Lua Script (TTL 10 phút = 600s), loại bỏ nguy cơ trùng ghế giữa hàng ngàn người dùng cùng lúc |
+| 🎟️ **Atomic Seat Locking (Redis Lua)** | Khóa ghế nguyên tử chống Race Condition bằng Redis Lua Script (TTL 10 phút = 600s), loại bỏ nguy cơ trùng ghế khi người dùng cùng lúc |
 | ⚡ **Realtime WebSocket Sync** | Phát sóng tức thời (`/topic/showtimes/{id}/seats`) trạng thái ghế (LOCKED, AVAILABLE, RESERVED) qua Spring WebSocket STOMP tới tất cả clients |
 | ⏳ **Redis TTL Keyspace Notification** | Lắng nghe sự kiện `__keyevent@*__:expired` khi hết 10 phút giữ ghế; tự động giải phóng ghế và broadcast WebSocket mà không cần polling liên tục |
 | 🛡️ **Pessimistic Locking & Database Integrity** | Kết hợp khóa bi quan `PESSIMISTIC_WRITE` tầng JPA và khóa phân tán Redis đảm bảo tính nhất quán tuyệt đối của dữ liệu đặt vé |
