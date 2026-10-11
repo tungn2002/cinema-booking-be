@@ -23,8 +23,6 @@
   <img src="https://img.shields.io/badge/Redis-7.2_Alpine-DC382D?style=flat-square&logo=redis&logoColor=white" />
   <img src="https://img.shields.io/badge/WebSocket-STOMP_Realtime-010101?style=flat-square&logo=socketdotio&logoColor=white" />
   <img src="https://img.shields.io/badge/MinIO-S3_Storage-C72C48?style=flat-square&logo=minio&logoColor=white" />
-  <img src="https://img.shields.io/badge/Stripe-Payments-635BFF?style=flat-square&logo=stripe&logoColor=white" />
-  <img src="https://img.shields.io/badge/PayPal-REST_API-00457C?style=flat-square&logo=paypal&logoColor=white" />
   <img src="https://img.shields.io/badge/Docker_Compose-Multi--Container-2496ED?style=flat-square&logo=docker&logoColor=white" />
   <img src="https://img.shields.io/badge/Nginx-SSL_Reverse_Proxy-009639?style=flat-square&logo=nginx&logoColor=white" />
   <img src="https://img.shields.io/badge/Ubuntu_VPS-Production-E95420?style=flat-square&logo=ubuntu&logoColor=white" />
