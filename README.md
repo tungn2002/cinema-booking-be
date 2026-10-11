@@ -6,10 +6,6 @@
  <img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=900&size=42&duration=3000&pause=1000&color=F97316&center=true&vCenter=true&width=750&lines=Cinema+Booking" alt="Cinema Booking Backend" />
 </h1>
 
-<p>
-  <img src="https://img.shields.io/badge/-%F0%9F%8E%AC%20Production--Ready%20Cinema%20Backend-f97316?style=for-the-badge&labelColor=0f0f0f&color=f97316" />
-</p>
-
 <h3>
   <p>Hệ thống Backend đặt vé xem phim — xử lý tranh chấp giữ ghế bằng Redis Lua Script, đồng bộ trạng thái Realtime qua WebSocket STOMP, tự động giải phóng ghế hết hạn bằng Redis Keyspace Notifications, xuất vé PDF & gửi Email bất đồng bộ, hỗ trợ thanh toán đa cổng (Stripe & PayPal), và tự động hóa triển khai trên VPS với Docker Compose & CI/CD GitHub Actions.</p>
 </h3>
