@@ -101,8 +101,7 @@ WHERE NOT EXISTS (SELECT 1 FROM movies WHERE id = 10);
 ALTER TABLE movies AUTO_INCREMENT = 11;
 
 -- sample showtimes for the next 14 days
--- clean up old showtimes first - don't want stale data
-DELETE FROM showtimes WHERE show_date < CURDATE(); -- remove past dates
+-- (Past showtimes are preserved to maintain foreign key integrity with seats and reservations)
 
 -- The Matrix showtimes
 -- using DATE_ADD to make sure dates are always in the future
@@ -226,13 +225,11 @@ WHERE NOT EXISTS (SELECT 1 FROM showtimes WHERE id = 26);
 -- Reset auto-increment sequence after explicit IDs
 ALTER TABLE showtimes AUTO_INCREMENT = 27;
 
--- Create seats for all showtimes
--- First, clean up any existing seats to avoid duplicates
-DELETE FROM seats WHERE showtime_id IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26);
+-- Create seats for all showtimes (using INSERT IGNORE to preserve existing seats and reservations)
 
 -- Create seats for showtime ID 26 (Avengers: Endgame at FilmHouse)
 -- FilmHouse (theater_id = 3) has 100 seats (10x10 grid)
-INSERT INTO seats (showtime_id, seat_number, is_reserved) VALUES
+INSERT IGNORE INTO seats (showtime_id, seat_number, is_reserved) VALUES
 -- Row A
 (26, 'A1', false), (26, 'A2', false), (26, 'A3', false), (26, 'A4', false), (26, 'A5', false),
 (26, 'A6', false), (26, 'A7', false), (26, 'A8', false), (26, 'A9', false), (26, 'A10', false),
@@ -269,7 +266,7 @@ INSERT INTO seats (showtime_id, seat_number, is_reserved) VALUES
 -- In a real scenario, you'd want to create all seats for each showtime
 
 -- Create seats for showtimes at Cineplex (theater_id = 1) - IDs 1, 4, 7, 10, 11, 13, 17, 19, 22, 24
-INSERT INTO seats (showtime_id, seat_number, is_reserved) VALUES
+INSERT IGNORE INTO seats (showtime_id, seat_number, is_reserved) VALUES
 -- Showtime 1
 (1, 'A1', false), (1, 'A2', false), (1, 'A3', false), (1, 'A4', false), (1, 'A5', false),
 -- Showtime 4
@@ -292,7 +289,7 @@ INSERT INTO seats (showtime_id, seat_number, is_reserved) VALUES
 (24, 'A1', false), (24, 'A2', false), (24, 'A3', false), (24, 'A4', false), (24, 'A5', false);
 
 -- Create seats for showtimes at MovieMax (theater_id = 2) - IDs 2, 5, 8, 14, 15, 18, 20, 21, 25
-INSERT INTO seats (showtime_id, seat_number, is_reserved) VALUES
+INSERT IGNORE INTO seats (showtime_id, seat_number, is_reserved) VALUES
 -- Showtime 2
 (2, 'A1', false), (2, 'A2', false), (2, 'A3', false), (2, 'A4', false), (2, 'A5', false),
 -- Showtime 5
@@ -313,7 +310,7 @@ INSERT INTO seats (showtime_id, seat_number, is_reserved) VALUES
 (25, 'A1', false), (25, 'A2', false), (25, 'A3', false), (25, 'A4', false), (25, 'A5', false);
 
 -- Create seats for showtimes at FilmHouse (theater_id = 3) - IDs 3, 6, 9, 12, 16, 23
-INSERT INTO seats (showtime_id, seat_number, is_reserved) VALUES
+INSERT IGNORE INTO seats (showtime_id, seat_number, is_reserved) VALUES
 -- Showtime 3
 (3, 'A1', false), (3, 'A2', false), (3, 'A3', false), (3, 'A4', false), (3, 'A5', false),
 -- Showtime 6
