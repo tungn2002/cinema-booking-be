@@ -7,7 +7,7 @@
 </h1>
 
 <h3>
-  <p>Hệ thống Backend đặt vé xem phim — xử lý tranh chấp giữ ghế bằng Redis Lua Script, đồng bộ trạng thái Realtime qua WebSocket STOMP, tự động giải phóng ghế hết hạn bằng Redis Keyspace Notifications, xuất vé PDF & gửi Email bất đồng bộ, hỗ trợ thanh toán đa cổng (Stripe & PayPal), và tự động hóa triển khai trên VPS với Docker Compose & CI/CD GitHub Actions.</p>
+  <p>Hệ thống Backend đặt vé xem phim — xử lý tranh chấp giữ ghế bằng Redis Lua Script, đồng bộ trạng thái Realtime qua WebSocket STOMP, tự động giải phóng ghế hết hạn bằng Redis Keyspace Notifications, gửi Email bất đồng bộ, hỗ trợ thanh toán đa cổng (Stripe & PayPal), và tự động hóa triển khai trên VPS với Docker Compose & CI/CD GitHub Actions.</p>
 </h3>
 
 <br/>
